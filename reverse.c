@@ -1,9 +1,10 @@
 const unsigned EOF = 0xFFFFFFFF;
+#define BUF_LEN 2048
 
 int main() {
-    unsigned buf[2048];
+    unsigned buf[BUF_LEN];
     unsigned len = 0;
-    while (1) {
+    while (len < BUF_LEN) {
         unsigned c = __builtin_delendum_read_advice();
         if (c == EOF) {
             break;
