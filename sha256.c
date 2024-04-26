@@ -18,7 +18,7 @@
 #include <stddef.h>
 #endif
 
-void *memset_ (void *ptr, int value, size_t num) {
+void *memset (void *ptr, int value, size_t num) {
     for (size_t i = 0; i < num; i++) {
         ((unsigned char *)ptr)[i] = value;
     }
@@ -166,7 +166,7 @@ void sha256_final(SHA256_CTX *ctx, BYTE hash[])
 		while (i < 64)
 			ctx->data[i++] = 0x00;
 		sha256_transform(ctx, ctx->data);
-		memset_(ctx->data, 0, 56);
+		memset(ctx->data, 0, 56);
 	}
 
 	// Append to the padding the total message's length in bits and transform.
@@ -203,14 +203,17 @@ const unsigned EOF = 0xFFFFFFFF;
 #include <stdio.h>
 #endif
 
+BYTE buf[BUF_LEN];
+BYTE hash[SHA256_BLOCK_SIZE];
+SHA256_CTX ctx;
+
 int main() {
-    BYTE buf[BUF_LEN];
     unsigned len = 0;
     while (len < BUF_LEN) {
 #ifdef __DELENDUM__
         unsigned c = __builtin_delendum_read_advice();
 #else
-        char c = getc(stdin);
+        unsigned c = getc(stdin);
 #endif
         if (c == EOF) {
             break;
@@ -219,15 +222,14 @@ int main() {
             len++;
         }
     }
-    SHA256_CTX ctx;
     sha256_init(&ctx);
     for (size_t i = 0; i < len; i += 64) {
         size_t n = len - i < 64 ? len - i : 64;
         sha256_update(&ctx, buf + i, n);
     }
-    BYTE hash[32];
+
     sha256_final(&ctx, hash);
-    for (size_t i = 0; i < 32; i++) {
+    for (size_t i = 0; i < SHA256_BLOCK_SIZE; i++) {
 #ifdef __DELENDUM__
         __builtin_delendum_write(hash[i]);
 #else
