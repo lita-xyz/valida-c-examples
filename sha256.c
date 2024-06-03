@@ -191,11 +191,11 @@ const unsigned EOF = 0xFFFFFFFF;
 #include <stdio.h>
 #endif
 
-WORD buf[BUF_LEN];
-WORD hash[SHA256_BLOCK_SIZE];
-SHA256_CTX ctx;
-
 int main() {
+    WORD buf[BUF_LEN];
+    WORD hash[SHA256_BLOCK_SIZE];
+    SHA256_CTX ctx;
+
     unsigned len = 0;
     while (len < BUF_LEN) {
 #ifdef __DELENDUM__
