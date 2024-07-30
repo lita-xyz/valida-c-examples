@@ -61,7 +61,7 @@ mpz_roinit_normal_n (mpz_t x, mp_srcptr xp, mp_size_t xs)
 static void
 gmp_die (const char *msg)
 {
-  fprintf (stderr, "%s\n", msg);
+  //fprintf (stderr, "%s\n", msg);
   abort();
 }
 #endif
