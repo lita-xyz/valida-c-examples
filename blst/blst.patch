@@ -1,0 +1,29 @@
+diff --git a/src/vect.h b/src/vect.h
+index 19640b1..e69567d 100644
+--- a/src/vect.h
++++ b/src/vect.h
+@@ -210,11 +210,11 @@ typedef const void *uptr_t;
+ # endif
+ #endif
+ 
+-#if defined(__GNUC__) || defined(__clang__)
+-# define launder(var) __asm__ __volatile__("" : "+r"(var))
+-#else
++//#if defined(__GNUC__) || defined(__clang__)
++//# define launder(var) __asm__ __volatile__("" : "+r"(var))
++//#else
+ # define launder(var)
+-#endif
++//#endif
+ 
+ static inline bool_t is_bit_set(const byte *v, size_t i)
+ {
+@@ -377,7 +377,7 @@ static inline void vec_zero(void *ret, size_t num)
+         rp[i] = 0;
+ 
+ #if defined(__GNUC__) || defined(__clang__)
+-    __asm__ __volatile__("" : : "r"(ret) : "memory");
++    //__asm__ __volatile__("" : : "r"(ret) : "memory");
+ #endif
+ }
+ 
