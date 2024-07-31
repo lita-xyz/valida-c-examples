@@ -1,0 +1,7 @@
+This repository depends on git submodules.
+
+After downloading this repository execute:
+```
+git submodule init
+git submodule update
+```
