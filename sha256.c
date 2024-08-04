@@ -22,6 +22,20 @@
 
 #ifdef __DELENDUM__
 #define size_t unsigned int
+
+void * memset ( void * b, int c, size_t len ) {
+  int           i;
+  unsigned char *p = b;
+  i = 0;
+  while(len > 0)
+    {
+      *p = c;
+      p++;
+      len--;
+    }
+  return b;
+}
+
 #else
 #include <stddef.h>
 #endif
@@ -31,16 +45,16 @@ typedef unsigned char BYTE;             // 8-bit byte
 typedef unsigned int  WORD;             // 32-bit word, change to "long" for 16-bit machines
 
 typedef struct {
-	WORD data[64];
+	BYTE data[64];
 	WORD datalen;
-	WORD bitlen;
+	unsigned long long bitlen;
 	WORD state[8];
 } SHA256_CTX;
 
 /*********************** FUNCTION DECLARATIONS **********************/
 void sha256_init(SHA256_CTX *ctx);
-void sha256_update(SHA256_CTX *ctx, const WORD data[], size_t len);
-void sha256_final(SHA256_CTX *ctx, WORD hash[]);
+void sha256_update(SHA256_CTX *ctx, const BYTE data[], size_t len);
+void sha256_final(SHA256_CTX *ctx, BYTE hash[]);
 
 /****************************** MACROS ******************************/
 #define ROTLEFT(a,b) (((a) << (b)) | ((a) >> (32-(b))))
@@ -66,7 +80,7 @@ static const WORD k[64] = {
 };
 
 /*********************** FUNCTION DEFINITIONS ***********************/
-void sha256_transform(SHA256_CTX *ctx, const WORD data[])
+void sha256_transform(SHA256_CTX *ctx, const BYTE data[])
 {
 	WORD a, b, c, d, e, f, g, h, i, j, t1, t2, m[64];
 
@@ -121,7 +135,7 @@ void sha256_init(SHA256_CTX *ctx)
 	ctx->state[7] = 0x5be0cd19;
 }
 
-void sha256_update(SHA256_CTX *ctx, const WORD data[], size_t len)
+void sha256_update(SHA256_CTX *ctx, const BYTE data[], size_t len)
 {
 	WORD i;
 
@@ -136,7 +150,7 @@ void sha256_update(SHA256_CTX *ctx, const WORD data[], size_t len)
 	}
 }
 
-void sha256_final(SHA256_CTX *ctx, WORD hash[])
+void sha256_final(SHA256_CTX *ctx, BYTE hash[])
 {
 	WORD i;
 
@@ -153,20 +167,19 @@ void sha256_final(SHA256_CTX *ctx, WORD hash[])
 		while (i < 64)
 			ctx->data[i++] = 0x00;
 		sha256_transform(ctx, ctx->data);
-    for (unsigned j = 0; j < 56; j++)
-      ctx->data[j] = 0;
+		memset(ctx->data, 0, 56);
 	}
 
 	// Append to the padding the total message's length in bits and transform.
 	ctx->bitlen += ctx->datalen * 8;
 	ctx->data[63] = ctx->bitlen;
 	ctx->data[62] = ctx->bitlen >> 8;
-	ctx->data[61] = 0;
-	ctx->data[60] = 0;
-	ctx->data[59] = 0;
-	ctx->data[58] = 0;
-	ctx->data[57] = 0;
-	ctx->data[56] = 0;
+	ctx->data[61] = ctx->bitlen >> 16;
+	ctx->data[60] = ctx->bitlen >> 24;
+	ctx->data[59] = ctx->bitlen >> 32;
+	ctx->data[58] = ctx->bitlen >> 40;
+	ctx->data[57] = ctx->bitlen >> 48;
+	ctx->data[56] = ctx->bitlen >> 56;
 	sha256_transform(ctx, ctx->data);
 
 	// Since this implementation uses little endian byte ordering and SHA uses big endian,
@@ -191,11 +204,11 @@ const unsigned EOF = 0xFFFFFFFF;
 #include <stdio.h>
 #endif
 
-WORD buf[BUF_LEN];
-WORD hash[SHA256_BLOCK_SIZE];
-SHA256_CTX ctx;
-
 int main() {
+    BYTE buf[BUF_LEN];
+    BYTE hash[SHA256_BLOCK_SIZE];
+    SHA256_CTX ctx;
+
     unsigned len = 0;
     while (len < BUF_LEN) {
 #ifdef __DELENDUM__
@@ -206,7 +219,7 @@ int main() {
         if (c == EOF) {
             break;
         } else {
-            buf[len] = c;
+            buf[len] = (BYTE)c;
             len++;
         }
     }

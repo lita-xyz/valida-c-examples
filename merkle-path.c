@@ -30,6 +30,19 @@
 
 #ifdef __DELENDUM__
 #define size_t unsigned int
+
+void * memset ( void * b, int c, size_t len ) {
+  int           i;
+  unsigned char *p = b;
+  i = 0;
+  while(len > 0)
+    {
+      *p = c;
+      p++;
+      len--;
+    }
+  return b;
+}
 #else
 #include <stddef.h>
 #endif
@@ -39,16 +52,16 @@ typedef unsigned char BYTE;             // 8-bit byte
 typedef unsigned int  WORD;             // 32-bit word, change to "long" for 16-bit machines
 
 typedef struct {
-	WORD data[64];
+	BYTE data[64];
 	WORD datalen;
-	WORD bitlen;
+	unsigned long long bitlen;
 	WORD state[8];
 } SHA256_CTX;
 
 /*********************** FUNCTION DECLARATIONS **********************/
 void sha256_init(SHA256_CTX *ctx);
-void sha256_update(SHA256_CTX *ctx, const WORD data[], size_t len);
-void sha256_final(SHA256_CTX *ctx, WORD hash[]);
+void sha256_update(SHA256_CTX *ctx, const BYTE data[], size_t len);
+void sha256_final(SHA256_CTX *ctx, BYTE hash[]);
 
 /****************************** MACROS ******************************/
 #define ROTLEFT(a,b) (((a) << (b)) | ((a) >> (32-(b))))
@@ -74,7 +87,7 @@ static const WORD k[64] = {
 };
 
 /*********************** FUNCTION DEFINITIONS ***********************/
-void sha256_transform(SHA256_CTX *ctx, const WORD data[])
+void sha256_transform(SHA256_CTX *ctx, const BYTE data[])
 {
 	WORD a, b, c, d, e, f, g, h, i, j, t1, t2, m[64];
 
@@ -129,7 +142,7 @@ void sha256_init(SHA256_CTX *ctx)
 	ctx->state[7] = 0x5be0cd19;
 }
 
-void sha256_update(SHA256_CTX *ctx, const WORD data[], size_t len)
+void sha256_update(SHA256_CTX *ctx, const BYTE data[], size_t len)
 {
 	WORD i;
 
@@ -144,7 +157,7 @@ void sha256_update(SHA256_CTX *ctx, const WORD data[], size_t len)
 	}
 }
 
-void sha256_final(SHA256_CTX *ctx, WORD hash[])
+void sha256_final(SHA256_CTX *ctx, BYTE hash[])
 {
 	WORD i;
 
@@ -169,12 +182,12 @@ void sha256_final(SHA256_CTX *ctx, WORD hash[])
 	ctx->bitlen += ctx->datalen * 8;
 	ctx->data[63] = ctx->bitlen;
 	ctx->data[62] = ctx->bitlen >> 8;
-	ctx->data[61] = 0;
-	ctx->data[60] = 0;
-	ctx->data[59] = 0;
-	ctx->data[58] = 0;
-	ctx->data[57] = 0;
-	ctx->data[56] = 0;
+	ctx->data[61] = ctx->bitlen >> 16;
+	ctx->data[60] = ctx->bitlen >> 24;
+	ctx->data[59] = ctx->bitlen >> 32;
+	ctx->data[58] = ctx->bitlen >> 40;
+	ctx->data[57] = ctx->bitlen >> 48;
+	ctx->data[56] = ctx->bitlen >> 56;
 	sha256_transform(ctx, ctx->data);
 
 	// Since this implementation uses little endian byte ordering and SHA uses big endian,
@@ -199,11 +212,6 @@ const unsigned EOF = 0xFFFFFFFF;
 #include <stdio.h>
 #endif
 
-WORD buf_left[SHA256_BLOCK_SIZE];
-WORD buf_right[SHA256_BLOCK_SIZE];
-WORD hash[SHA256_BLOCK_SIZE];
-SHA256_CTX ctx;
-
 unsigned read_byte() {
 #ifdef __DELENDUM__
         return __builtin_delendum_read_advice();
@@ -214,19 +222,19 @@ unsigned read_byte() {
 
 // Reads SHA256_BLOCK_SIZE many bytes (or as many as are available) into buf.
 // Returns EOF if EOF was reached; otherwise, returns 0.
-unsigned read_block(WORD *buf) {
+unsigned read_block(BYTE *buf) {
     for (unsigned i = 0; i < SHA256_BLOCK_SIZE; i++) {
         unsigned c = read_byte();
         if (c == EOF) {
             return EOF;
         } else {
-            buf[i] = c;
+            buf[i] = (BYTE)c;
         }
     }
     return 0;
 }
 
-void write_block(WORD *buf) {
+void write_block(BYTE *buf) {
     for (unsigned i = 0; i < SHA256_BLOCK_SIZE; i++) {
 #ifdef __DELENDUM__
         __builtin_delendum_write(buf[i]);
@@ -236,32 +244,32 @@ void write_block(WORD *buf) {
     }
 }
 
-int output(WORD *leaf, WORD *root) {
+int output(BYTE *leaf, BYTE *root) {
     write_block(leaf);
     write_block(root);
     return 0;
 }
 
-void hash_blocks(WORD *buf_left, WORD* buf_right, WORD *hash) {
-    sha256_init(&ctx);
-    sha256_update(&ctx, buf_left, SHA256_BLOCK_SIZE);
-    sha256_update(&ctx, buf_right, SHA256_BLOCK_SIZE);
-    sha256_final(&ctx, hash);
+void hash_blocks(SHA256_CTX *ctx, BYTE *buf_left, BYTE *buf_right, BYTE *hash) {
+    sha256_init(ctx);
+    sha256_update(ctx, buf_left, SHA256_BLOCK_SIZE);
+    sha256_update(ctx, buf_right, SHA256_BLOCK_SIZE);
+    sha256_final(ctx, hash);
 }
 
-void copy_block(WORD *from, WORD *to) {
+void copy_block(BYTE *from, BYTE *to) {
     for (unsigned i = 0; i < SHA256_BLOCK_SIZE; i++) {
         to[i] = from[i];
     }
 }
 
-WORD buf_left[SHA256_BLOCK_SIZE];
-WORD buf_right[SHA256_BLOCK_SIZE];
-WORD leaf[SHA256_BLOCK_SIZE];
-WORD hash[SHA256_BLOCK_SIZE];
-SHA256_CTX ctx;
-
 int main() {
+    BYTE buf_left[SHA256_BLOCK_SIZE];
+    BYTE buf_right[SHA256_BLOCK_SIZE];
+    BYTE leaf[SHA256_BLOCK_SIZE];
+    BYTE hash[SHA256_BLOCK_SIZE];
+    SHA256_CTX ctx;
+
     unsigned result = read_block(buf_left);
     if (result == EOF) {
         while (1) {}
@@ -275,14 +283,14 @@ int main() {
         while (1) {}
     }
 
-    WORD *buf_empty = is_right ? buf_left : buf_right;
+    BYTE *buf_empty = is_right ? buf_left : buf_right;
     result = read_block(buf_empty);
     if (result == EOF) {
         return output(leaf, leaf);
     }
 
     while (1) {
-        hash_blocks(buf_left, buf_right, hash);
+        hash_blocks(&ctx, buf_left, buf_right, hash);
 
         is_right = read_byte();
         if (is_right == 1) {
@@ -291,7 +299,7 @@ int main() {
             copy_block(hash, buf_left);
         }
 
-        WORD *buf_empty = is_right ? buf_left : buf_right;
+        BYTE *buf_empty = is_right ? buf_left : buf_right;
         result = read_block(buf_empty);
         if (result == EOF) {
             return output(leaf, hash);
