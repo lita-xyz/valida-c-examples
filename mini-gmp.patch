@@ -1,0 +1,169 @@
+diff --git a/mini-gmp-6.3.0/mini-gmp.c b/mini-gmp-6.3.0/mini-gmp.c
+index 69a72bf..e34d431 100644
+--- a/mini-gmp-6.3.0/mini-gmp.c
++++ b/mini-gmp-6.3.0/mini-gmp.c
+@@ -42,10 +42,11 @@ see https://www.gnu.org/licenses/.  */
+    mpn/generic/sbpi1_div_qr.c, mpn/generic/sub_n.c,
+    mpn/generic/submul_1.c. */
+ 
+-#include <assert.h>
++#define assert(expression) ((void)0)
++//#include <assert.h>
+ #include <ctype.h>
+ #include <limits.h>
+-#include <stdio.h>
++//#include <stdio.h>
+ #include <stdlib.h>
+ #include <string.h>
+ 
+@@ -55,7 +56,41 @@ see https://www.gnu.org/licenses/.  */
+ #include <float.h>
+ #endif
+ 
+-
++void free(void*ptr) {}
++
++#define HEAP_SIZE 1024*1024*5 // 5MB
++char heap[HEAP_SIZE] __attribute__((aligned(8)));
++
++void * malloc(size_t size) {
++  #define HEAP_SIZE 1024*1024*5
++  static char* current_free_heap_ptr = heap;
++
++  // If size is 0, then malloc() returns either NULL, or a unique pointer value
++  // that can later be successfully passed to free()
++  if (size == 0) {
++    return NULL;
++  }
++
++  // check that there are enough space to allocate. If not,
++  // return NULL.
++  // On error, these functions return NULL.
++  if (current_free_heap_ptr + size > heap + HEAP_SIZE) {
++    return NULL;
++  }
++
++  void *ret = current_free_heap_ptr;
++  current_free_heap_ptr += (size + 7) & ~7;
++  return ret;
++}
++
++void *realloc( void *ptr, size_t new_size ) {
++ return malloc(new_size);
++}
++
++void abort() {
++  while (1) {}
++}
++
+ /* Macros */
+ #define GMP_LIMB_BITS (sizeof(mp_limb_t) * CHAR_BIT)
+ 
+@@ -288,7 +323,7 @@ const int mp_bits_per_limb = GMP_LIMB_BITS;
+ static void
+ gmp_die (const char *msg)
+ {
+-  fprintf (stderr, "%s\n", msg);
++  //fprintf (stderr, "%s\n", msg);
+   abort();
+ }
+ 
+@@ -4428,6 +4463,7 @@ mpz_init_set_str (mpz_t r, const char *sp, int base)
+   return mpz_set_str (r, sp, base);
+ }
+ 
++#if 0
+ size_t
+ mpz_out_str (FILE *stream, int base, const mpz_t x)
+ {
+@@ -4442,7 +4478,7 @@ mpz_out_str (FILE *stream, int base, const mpz_t x)
+   gmp_free (str, len + 1);
+   return n;
+ }
+-
++#endif
+ 
+ static int
+ gmp_detect_endian (void)
+diff --git a/mini-gmp-6.3.0/mini-mpq.c b/mini-gmp-6.3.0/mini-mpq.c
+index 58ce37f..a8cbc51 100644
+--- a/mini-gmp-6.3.0/mini-mpq.c
++++ b/mini-gmp-6.3.0/mini-mpq.c
+@@ -33,14 +33,50 @@ You should have received copies of the GNU General Public License and the
+ GNU Lesser General Public License along with the GNU MP Library.  If not,
+ see https://www.gnu.org/licenses/.  */
+ 
+-#include <assert.h>
++#define assert(expression) ((void)0)
++//#include <assert.h>
+ #include <limits.h>
+-#include <stdio.h>
++//#include <stdio.h>
+ #include <stdlib.h>
+ #include <string.h>
+ 
+ #include "mini-mpq.h"
+ 
++void free(void*ptr) {}
++
++#define HEAP_SIZE 1024*1024*5 // 5MB
++char heap[HEAP_SIZE] __attribute__((aligned(8)));
++
++void * malloc(size_t size) {
++  #define HEAP_SIZE 1024*1024*5
++  static char* current_free_heap_ptr = heap;
++
++  // If size is 0, then malloc() returns either NULL, or a unique pointer value
++  // that can later be successfully passed to free()
++  if (size == 0) {
++    return NULL;
++  }
++
++  // check that there are enough space to allocate. If not,
++  // return NULL.
++  // On error, these functions return NULL.
++  if (current_free_heap_ptr + size > heap + HEAP_SIZE) {
++    return NULL;
++  }
++
++  void *ret = current_free_heap_ptr;
++  current_free_heap_ptr += (size + 7) & ~7;
++  return ret;
++}
++
++void *realloc( void *ptr, size_t new_size ) {
++ return malloc(new_size);
++}
++
++void abort() {
++  while (1) {}
++}
++
+ #ifndef GMP_LIMB_HIGHBIT
+ /* Define macros and static functions already defined by mini-gmp.c */
+ #define GMP_LIMB_BITS (sizeof(mp_limb_t) * CHAR_BIT)
+@@ -61,7 +97,7 @@ mpz_roinit_normal_n (mpz_t x, mp_srcptr xp, mp_size_t xs)
+ static void
+ gmp_die (const char *msg)
+ {
+-  fprintf (stderr, "%s\n", msg);
++  //fprintf (stderr, "%s\n", msg);
+   abort();
+ }
+ #endif
+@@ -507,6 +543,7 @@ mpq_get_str (char *sp, int base, const mpq_t q)
+   return res;
+ }
+ 
++#if 0
+ size_t
+ mpq_out_str (FILE *stream, int base, const mpq_t x)
+ {
+@@ -523,6 +560,7 @@ mpq_out_str (FILE *stream, int base, const mpq_t x)
+   gmp_free_func (str, len + 1);
+   return n;
+ }
++#endif
+ 
+ int
+ mpq_set_str (mpq_t r, const char *sp, int base)
